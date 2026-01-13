@@ -1,0 +1,260 @@
+import java.util.*;
+
+
+public class Main {
+
+
+    public static int readInt(Scanner sc, String message) {
+        while (true) {
+            System.out.print(message);
+            String text = sc.nextLine();
+
+            try {
+                return Integer.parseInt(text);
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter an integer number (example: 3).");
+            }
+        }
+    }
+
+
+    public static String readString(Scanner sc, String message) {
+        while (true) {
+            System.out.print(message);
+            String text = sc.nextLine();
+
+            if (!text.equals("")) {
+                return text;
+            }
+            System.out.println("Input cannot be empty.");
+        }
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        Graph campusMap = new Graph();
+
+        while (true) {
+            System.out.println("\n=== Campus Food Delivery Map ===");
+            System.out.println("1. Add Location");
+            System.out.println("2. Add Route");
+            System.out.println("3. Display Map");
+            System.out.println("4. Shortest Path");
+            System.out.println("0. Exit");
+            System.out.print("Choose: ");
+
+            String choice = sc.nextLine();
+
+            if (choice.equals("1")) {
+                String location = readString(sc, "Enter location name: ");
+                campusMap.addLocation(location);
+
+            } else if (choice.equals("2")) {
+                String from = readString(sc, "From location: ");
+                String to = readString(sc, "To location: ");
+                int distance = readInt(sc, "Distance (km, integer > 0): ");
+
+                campusMap.addRoute(from, to, distance);
+
+            } else if (choice.equals("3")) {
+                campusMap.displayGraph();
+
+            } else if (choice.equals("4")) {
+                String start = readString(sc, "Start location: ");
+                String end = readString(sc, "Destination location: ");
+                campusMap.printShortestPath(start, end);
+
+            } else if (choice.equals("0")) {
+                System.out.println("Goodbye.");
+                sc.close();
+                break;
+
+            } else {
+                System.out.println("Invalid choice.");
+            }
+        }
+    }
+}
+
+
+
+class Graph {
+
+   
+    private HashMap<String, List<Edge>> adjList = new HashMap<>();
+
+
+    public void addLocation(String location) {
+        if (adjList.containsKey(location)) {
+            System.out.println("Location already exists.");
+        } else {
+            adjList.put(location, new ArrayList<Edge>());
+            System.out.println("Location added: " + location);
+        }
+    }
+
+    
+
+    public void addRoute(String from, String to, int distanceKm) {
+
+
+        if (!adjList.containsKey(from) || !adjList.containsKey(to)) {
+            System.out.println("One or both locations do not exist. Please add locations first.");
+            return;
+        }
+
+
+        if (distanceKm <= 0) {
+            System.out.println("Distance must be > 0.");
+            return;
+        }
+
+
+        adjList.get(from).add(new Edge(to, distanceKm));
+
+        adjList.get(to).add(new Edge(from, distanceKm));
+
+        System.out.println("Route added: " + from + " <-> " + to + " (" + distanceKm + " km)");
+    }
+
+
+    public void displayGraph() {
+        if (adjList.isEmpty()) {
+            System.out.println("No locations yet.");
+            return;
+        }
+
+        System.out.println("\n=== Adjacency List ===");
+        for (String location : adjList.keySet()) {
+            System.out.print(location + " -> ");
+
+            List<Edge> roads = adjList.get(location);
+
+            if (roads.size() == 0) {
+                System.out.print("(no routes)");
+            } else {
+                for (Edge road : roads) {
+                    System.out.print("(" + road.destination + ", " + road.distanceKm + " km) ");
+                }
+            }
+
+            System.out.println();
+        }
+        System.out.println("======================\n");
+    }
+
+    
+
+    public void printShortestPath(String start, String target) {
+
+
+        if (!adjList.containsKey(start) || !adjList.containsKey(target)) {
+            System.out.println("Start or destination location does not exist.");
+            return;
+        }
+
+
+        HashMap<String, Integer> dist = new HashMap<>();
+
+
+        HashMap<String, String> prev = new HashMap<>();
+
+
+        for (String loc : adjList.keySet()) {
+            dist.put(loc, Integer.MAX_VALUE);
+            prev.put(loc, null);
+        }
+
+
+        dist.put(start, 0);
+
+
+        PriorityQueue<NodeDist> pq = new PriorityQueue<>();
+        pq.add(new NodeDist(start, 0));
+
+
+        HashSet<String> visited = new HashSet<>();
+
+
+        while (pq.size() > 0) {
+
+            NodeDist top = pq.poll();     
+            String current = top.node;
+
+            if (visited.contains(current)) {
+                continue;
+            }
+            visited.add(current);
+
+
+            if (current.equals(target)) {
+                break;
+            }
+
+
+            for (Edge road : adjList.get(current)) {
+                String neighbor = road.destination;
+
+
+                int newDistance = dist.get(current) + road.distanceKm;
+
+
+                if (newDistance < dist.get(neighbor)) {
+                    dist.put(neighbor, newDistance);
+                    prev.put(neighbor, current);
+
+
+                    pq.add(new NodeDist(neighbor, newDistance));
+                }
+            }
+        }
+
+
+        if (dist.get(target) == Integer.MAX_VALUE) {
+            System.out.println("No path found from " + start + " to " + target + ".");
+            return;
+        }
+
+
+        ArrayList<String> path = new ArrayList<>();
+        String current = target;
+
+        while (current != null) {
+            path.add(current);
+            current = prev.get(current);
+        }
+
+        
+        Collections.reverse(path);
+
+        
+        System.out.println("Shortest distance: " + dist.get(target) + " km");
+        System.out.println("Path: " + String.join(" -> ", path));
+    }
+
+    
+    static class NodeDist implements Comparable<NodeDist> {
+        String node;
+        int dist;
+
+        NodeDist(String node, int dist) {
+            this.node = node;
+            this.dist = dist;
+        }
+
+        public int compareTo(NodeDist other) {
+            return this.dist - other.dist;
+        }
+    }
+}
+
+
+class Edge {
+    String destination;
+    int distanceKm;
+
+    Edge(String destination, int distanceKm) {
+        this.destination = destination;
+        this.distanceKm = distanceKm;
+    }
+}
