@@ -1,260 +1,263 @@
-import java.util.*;
+import java.util.Scanner;
+
+
+class Node<T> {
+    T data;
+    Node<T> nextNode;
+
+    public Node(T data) {
+        this.data = data;
+    }
+
+    public T getData() { return this.data; }
+    public Node<T> getNextNode() { return this.nextNode; }
+    public void setNextNode(Node<T> nextNode) { this.nextNode = nextNode; }
+
+    @Override
+    public String toString() {
+        return this.data.toString();
+    }
+}
+
+// --- 2. CUSTOM GENERIC LINKEDLIST ---
+class LinkedList<T> {
+    Node<T> head;
+
+    public void insertAtHead(T data) {
+        Node<T> newNode = new Node<>(data);
+        newNode.setNextNode(this.head);
+        this.head = newNode;
+    }
+
+    public int length() {
+        int length = 0;
+        Node<T> current = this.head;
+        while (current != null) {
+            length++;
+            current = current.getNextNode();
+        }
+        return length;
+    }
+
+    public void display() {
+        Node<T> current = this.head;
+        while (current != null) {
+            System.out.print(current.data + " ");
+            current = current.getNextNode();
+        }
+    }
+}
+
+
+class MyHashMap<K, V> {
+    private class Entry {
+        K key;
+        V value;
+        Entry(K k, V v) { key = k; value = v; }
+    }
+    
+    private LinkedList<Entry>[] table;
+    private int capacity;
+
+    public MyHashMap(int capacity) {
+        this.capacity = capacity;
+        table = new LinkedList[capacity];
+        for (int i = 0; i < capacity; i++) table[i] = new LinkedList<>();
+    }
+
+    private int getHash(K key) {
+        return Math.abs(key.hashCode()) % capacity;
+    }
+
+    public void put(K key, V value) {
+        int idx = getHash(key);
+        Node<Entry> curr = table[idx].head;
+        while (curr != null) {
+            if (curr.data.key.equals(key)) {
+                curr.data.value = value;
+                return;
+            }
+            curr = curr.nextNode;
+        }
+        table[idx].insertAtHead(new Entry(key, value));
+    }
+
+    public V get(K key) {
+        int idx = getHash(key);
+        Node<Entry> curr = table[idx].head;
+        while (curr != null) {
+            if (curr.data.key.equals(key)) return curr.data.value;
+            curr = curr.nextNode;
+        }
+        return null;
+    }
+
+    public LinkedList<K> keySet() {
+        LinkedList<K> keys = new LinkedList<>();
+        for (int i = 0; i < capacity; i++) {
+            Node<Entry> curr = table[i].head;
+            while (curr != null) {
+                keys.insertAtHead(curr.data.key);
+                curr = curr.nextNode;
+            }
+        }
+        return keys;
+    }
+}
+
+
+class PriorityQueueCustom<T extends Comparable<T>> {
+    private LinkedList<T> list = new LinkedList<>();
+
+    public void add(T data) {
+        Node<T> newNode = new Node<>(data);
+        if (list.head == null || list.head.data.compareTo(data) > 0) {
+            newNode.nextNode = list.head;
+            list.head = newNode;
+        } else {
+            Node<T> curr = list.head;
+            while (curr.nextNode != null && curr.nextNode.data.compareTo(data) <= 0) {
+                curr = curr.nextNode;
+            }
+            newNode.nextNode = curr.nextNode;
+            curr.nextNode = newNode;
+        }
+    }
+
+    public T poll() {
+        if (list.head == null) return null;
+        T data = list.head.data;
+        list.head = list.head.nextNode;
+        return data;
+    }
+
+    public boolean isEmpty() { return list.head == null; }
+}
+
+// --- 5. EDGE & GRAPH LOGIC ---
+class Edge {
+    String destination;
+    int distanceKm;
+    Edge(String dest, int dist) { this.destination = dest; this.distanceKm = dist; }
+    @Override public String toString() { return "(" + destination + ", " + distanceKm + "km)"; }
+}
+
+class NodeDist implements Comparable<NodeDist> {
+    String node; int dist;
+    NodeDist(String n, int d) { this.node = n; this.dist = d; }
+    public int compareTo(NodeDist other) { return Integer.compare(this.dist, other.dist); }
+}
+
+class Graph {
+    private MyHashMap<String, LinkedList<Edge>> adjList = new MyHashMap<>(20);
+
+    public void addLocation(String loc) {
+        if (adjList.get(loc) == null) {
+            adjList.put(loc, new LinkedList<Edge>());
+            System.out.println("Location added: " + loc);
+        } else {
+            System.out.println("Location already exists.");
+        }
+    }
+
+    public void addRoute(String from, String to, int dist) {
+        if (adjList.get(from) == null || adjList.get(to) == null) {
+            System.out.println("Error: Locations do not exist.");
+            return;
+        }
+        adjList.get(from).insertAtHead(new Edge(to, dist));
+        adjList.get(to).insertAtHead(new Edge(from, dist));
+        System.out.println("Route added: " + from + " <-> " + to);
+    }
+
+    public void displayGraph() {
+        LinkedList<String> keys = adjList.keySet();
+        Node<String> curr = keys.head;
+        while (curr != null) {
+            System.out.print(curr.data + " -> ");
+            adjList.get(curr.data).display();
+            System.out.println();
+            curr = curr.nextNode;
+        }
+    }
+
+    public void printShortestPath(String start, String target) {
+        MyHashMap<String, Integer> dists = new MyHashMap<>(20);
+        MyHashMap<String, String> prev = new MyHashMap<>(20);
+        PriorityQueueCustom<NodeDist> pq = new PriorityQueueCustom<>();
+
+        Node<String> locNode = adjList.keySet().head;
+        while (locNode != null) {
+            dists.put(locNode.data, Integer.MAX_VALUE);
+            locNode = locNode.nextNode;
+        }
+
+        dists.put(start, 0);
+        pq.add(new NodeDist(start, 0));
+
+        while (!pq.isEmpty()) {
+            NodeDist top = pq.poll();
+            if (top.node.equals(target)) break;
+
+            Node<Edge> edgeNode = adjList.get(top.node).head;
+            while (edgeNode != null) {
+                int newDist = dists.get(top.node) + edgeNode.data.distanceKm;
+                if (newDist < dists.get(edgeNode.data.destination)) {
+                    dists.put(edgeNode.data.destination, newDist);
+                    prev.put(edgeNode.data.destination, top.node);
+                    pq.add(new NodeDist(edgeNode.data.destination, newDist));
+                }
+                edgeNode = edgeNode.nextNode;
+            }
+        }
+
+        if (dists.get(target) == Integer.MAX_VALUE) {
+            System.out.println("No path found.");
+        } else {
+            System.out.println("Distance: " + dists.get(target) + " km");
+            System.out.print("Path: ");
+            printPath(prev, target);
+            System.out.println();
+        }
+    }
+
+    private void printPath(MyHashMap<String, String> prev, String curr) {
+        if (curr == null) return;
+        printPath(prev, prev.get(curr));
+        System.out.print(curr + " ");
+    }
+}
 
 
 public class Main {
-
-
-    public static int readInt(Scanner sc, String message) {
-        while (true) {
-            System.out.print(message);
-            String text = sc.nextLine();
-
-            try {
-                return Integer.parseInt(text);
-            } catch (NumberFormatException e) {
-                System.out.println("Please enter an integer number (example: 3).");
-            }
-        }
-    }
-
-
-    public static String readString(Scanner sc, String message) {
-        while (true) {
-            System.out.print(message);
-            String text = sc.nextLine();
-
-            if (!text.equals("")) {
-                return text;
-            }
-            System.out.println("Input cannot be empty.");
-        }
-    }
-
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         Graph campusMap = new Graph();
 
         while (true) {
             System.out.println("\n=== Campus Food Delivery Map ===");
-            System.out.println("1. Add Location");
-            System.out.println("2. Add Route");
-            System.out.println("3. Display Map");
-            System.out.println("4. Shortest Path");
-            System.out.println("0. Exit");
+            System.out.println("1. Add Location\n2. Add Route\n3. Display Map\n4. Shortest Path\n0. Exit");
             System.out.print("Choose: ");
-
             String choice = sc.nextLine();
 
             if (choice.equals("1")) {
-                String location = readString(sc, "Enter location name: ");
-                campusMap.addLocation(location);
-
+                System.out.print("Location name: ");
+                campusMap.addLocation(sc.nextLine());
             } else if (choice.equals("2")) {
-                String from = readString(sc, "From location: ");
-                String to = readString(sc, "To location: ");
-                int distance = readInt(sc, "Distance (km, integer > 0): ");
-
-                campusMap.addRoute(from, to, distance);
-
+                System.out.print("From: "); String f = sc.nextLine();
+                System.out.print("To: "); String t = sc.nextLine();
+                System.out.print("Distance: "); 
+                int d = Integer.parseInt(sc.nextLine());
+                campusMap.addRoute(f, t, d);
             } else if (choice.equals("3")) {
                 campusMap.displayGraph();
-
             } else if (choice.equals("4")) {
-                String start = readString(sc, "Start location: ");
-                String end = readString(sc, "Destination location: ");
-                campusMap.printShortestPath(start, end);
-
+                System.out.print("Start: "); String s = sc.nextLine();
+                System.out.print("End: "); String e = sc.nextLine();
+                campusMap.printShortestPath(s, e);
             } else if (choice.equals("0")) {
-                System.out.println("Goodbye.");
-                sc.close();
-                break;
-
-            } else {
-                System.out.println("Invalid choice.");
-            }
-        }
-    }
-}
-
-
-
-class Graph {
-
-   
-    private HashMap<String, List<Edge>> adjList = new HashMap<>();
-
-
-    public void addLocation(String location) {
-        if (adjList.containsKey(location)) {
-            System.out.println("Location already exists.");
-        } else {
-            adjList.put(location, new ArrayList<Edge>());
-            System.out.println("Location added: " + location);
-        }
-    }
-
-    
-
-    public void addRoute(String from, String to, int distanceKm) {
-
-
-        if (!adjList.containsKey(from) || !adjList.containsKey(to)) {
-            System.out.println("One or both locations do not exist. Please add locations first.");
-            return;
-        }
-
-
-        if (distanceKm <= 0) {
-            System.out.println("Distance must be > 0.");
-            return;
-        }
-
-
-        adjList.get(from).add(new Edge(to, distanceKm));
-
-        adjList.get(to).add(new Edge(from, distanceKm));
-
-        System.out.println("Route added: " + from + " <-> " + to + " (" + distanceKm + " km)");
-    }
-
-
-    public void displayGraph() {
-        if (adjList.isEmpty()) {
-            System.out.println("No locations yet.");
-            return;
-        }
-
-        System.out.println("\n=== Adjacency List ===");
-        for (String location : adjList.keySet()) {
-            System.out.print(location + " -> ");
-
-            List<Edge> roads = adjList.get(location);
-
-            if (roads.size() == 0) {
-                System.out.print("(no routes)");
-            } else {
-                for (Edge road : roads) {
-                    System.out.print("(" + road.destination + ", " + road.distanceKm + " km) ");
-                }
-            }
-
-            System.out.println();
-        }
-        System.out.println("======================\n");
-    }
-
-    
-
-    public void printShortestPath(String start, String target) {
-
-
-        if (!adjList.containsKey(start) || !adjList.containsKey(target)) {
-            System.out.println("Start or destination location does not exist.");
-            return;
-        }
-
-
-        HashMap<String, Integer> dist = new HashMap<>();
-
-
-        HashMap<String, String> prev = new HashMap<>();
-
-
-        for (String loc : adjList.keySet()) {
-            dist.put(loc, Integer.MAX_VALUE);
-            prev.put(loc, null);
-        }
-
-
-        dist.put(start, 0);
-
-
-        PriorityQueue<NodeDist> pq = new PriorityQueue<>();
-        pq.add(new NodeDist(start, 0));
-
-
-        HashSet<String> visited = new HashSet<>();
-
-
-        while (pq.size() > 0) {
-
-            NodeDist top = pq.poll();     
-            String current = top.node;
-
-            if (visited.contains(current)) {
-                continue;
-            }
-            visited.add(current);
-
-
-            if (current.equals(target)) {
                 break;
             }
-
-
-            for (Edge road : adjList.get(current)) {
-                String neighbor = road.destination;
-
-
-                int newDistance = dist.get(current) + road.distanceKm;
-
-
-                if (newDistance < dist.get(neighbor)) {
-                    dist.put(neighbor, newDistance);
-                    prev.put(neighbor, current);
-
-
-                    pq.add(new NodeDist(neighbor, newDistance));
-                }
-            }
         }
-
-
-        if (dist.get(target) == Integer.MAX_VALUE) {
-            System.out.println("No path found from " + start + " to " + target + ".");
-            return;
-        }
-
-
-        ArrayList<String> path = new ArrayList<>();
-        String current = target;
-
-        while (current != null) {
-            path.add(current);
-            current = prev.get(current);
-        }
-
-        
-        Collections.reverse(path);
-
-        
-        System.out.println("Shortest distance: " + dist.get(target) + " km");
-        System.out.println("Path: " + String.join(" -> ", path));
-    }
-
-    
-    static class NodeDist implements Comparable<NodeDist> {
-        String node;
-        int dist;
-
-        NodeDist(String node, int dist) {
-            this.node = node;
-            this.dist = dist;
-        }
-
-        public int compareTo(NodeDist other) {
-            return this.dist - other.dist;
-        }
-    }
-}
-
-
-class Edge {
-    String destination;
-    int distanceKm;
-
-    Edge(String destination, int distanceKm) {
-        this.destination = destination;
-        this.distanceKm = distanceKm;
     }
 }
