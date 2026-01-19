@@ -1,50 +1,41 @@
-import java.util.HashMap;
-import java.util.Map;
-
 public class LookupManager {
-    // Fast lookup for riders by Rider ID 
-    private Map<String, Rider> riderMap;
-    // Fast lookup for orders by Order ID 
-    // Note: The Order class would be created by the "Queue" teammate
-    private Map<String, Order> orderMap; 
+    private MyHashMap<String, Rider> riderMap;
+    private MyHashMap<String, Order> orderMap; 
 
     public LookupManager() {
-        this.riderMap = new HashMap<>();
-        this.orderMap = new HashMap<>();
+        //Custom HashMap
+        this.riderMap = new MyHashMap<>();
+        this.orderMap = new MyHashMap<>();
     }
 
-    // Rider Management 
+    //Rider Management
     public void addRider(Rider rider) {
         riderMap.put(rider.getRiderId(), rider);
     }
 
     public Rider searchRiderById(String id) {
-        return riderMap.get(id); // O(1) time complexity 
+        return riderMap.get(id); // O(1) average time complexity 
     }
 
-    //  Search Functions 
-    public void searchOrderById(String orderId) {
+    //Search Functions
+        public void searchOrderById(String orderId) {
         Order order = orderMap.get(orderId);
         if (order != null) {
-            System.out.println("Order Found: " + order);
+            System.out.println("Order Found: " + order.toString());
         } else {
             System.out.println("Order ID " + orderId + " not found.");
         }
     }
 
-    public void searchOrdersByStudent(String studentName) {
+    public void searchOrdersByStudent(Order[] allOrders, String studentName) {
         System.out.println("Searching for orders by: " + studentName);
-        for (Order order : orderMap.values()) {
-            if (order.getStudentName().equalsIgnoreCase(studentName)) {
-                System.out.println(order);
+        boolean found = false;
+        for (int i = 0; i < allOrders.length; i++) {
+            if (allOrders[i] != null && allOrders[i].getStudentName().equalsIgnoreCase(studentName)) {
+                System.out.println(allOrders[i].toString());
+                found = true;
             }
         }
-    }
-
-    public void displayAllRiders() {
-        System.out.println("\n--- Campus Riders ---");
-        for (Rider r : riderMap.values()) {
-            System.out.println(r);
-        }
+        if (!found) System.out.println("No orders found for student: " + studentName);
     }
 }
