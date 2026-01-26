@@ -135,25 +135,55 @@ public class Main {
                     undoStack.push(new model.UndoAction(model.UndoAction.Type.ADD_LOCATION, loc));
                     break;
                 case 2:
-                    System.out.print("From (0 to go back): ");
-                    String from = scanner.nextLine();
-                    if (from.equals("0"))
-                        break;
-                    from = normalize(from);
-
-                    System.out.print("To (0 to go back): ");
-                    String to = scanner.nextLine();
-                    if (to.equals("0"))
-                        break;
-                    to = normalize(to);
-
-                    System.out.print("Distance (0 to go back): ");
-                    if (!scanner.hasNextInt()) {
-                        scanner.next();
+                    String from, to;
+                    while (true) {
+                        System.out.print("From (0 to go back): ");
+                        from = scanner.nextLine().trim();
+                        if (from.equals("0"))
+                            break;
+                        if (from.isEmpty()) {
+                            System.out.println("Error: Location cannot be empty.");
+                            continue;
+                        }
+                        from = normalize(from);
                         break;
                     }
-                    int dist = scanner.nextInt();
-                    scanner.nextLine();
+                    if (from.equals("0"))
+                        break;
+
+                    while (true) {
+                        System.out.print("To (0 to go back): ");
+                        to = scanner.nextLine().trim();
+                        if (to.equals("0"))
+                            break;
+                        if (to.isEmpty()) {
+                            System.out.println("Error: Location cannot be empty.");
+                            continue;
+                        }
+                        to = normalize(to);
+                        break;
+                    }
+                    if (to.equals("0"))
+                        break;
+
+                    int dist = -1;
+                    while (true) {
+                        System.out.print("Distance (Positive km, 0 to go back): ");
+                        if (!scanner.hasNextInt()) {
+                            System.out.println("Error: Please enter a valid number.");
+                            scanner.next();
+                            continue;
+                        }
+                        dist = scanner.nextInt();
+                        scanner.nextLine();
+                        if (dist == 0)
+                            break;
+                        if (dist < 0) {
+                            System.out.println("Error: Distance must be positive.");
+                            continue;
+                        }
+                        break;
+                    }
                     if (dist == 0)
                         break;
 
@@ -169,7 +199,6 @@ public class Main {
     private static void createNewOrder() {
         Order newOrder = inputOrderDetails();
         if (newOrder != null) {
-            orderManager.addOrder(newOrder);
             statsManager.recordOrder(newOrder.getPriority());
             undoStack.push(new model.UndoAction(model.UndoAction.Type.ADD_ORDER, newOrder.getOrderId()));
             System.out.println("Order created successfully.");
@@ -337,39 +366,90 @@ public class Main {
     }
 
     private static Order inputOrderDetails() {
-        System.out.print("Order ID (0 to go back): ");
-        String id = scanner.nextLine();
-        if (id.equals("0"))
-            return null;
+        String id;
+        while (true) {
+            System.out.print("Order ID (0 to go back): ");
+            id = scanner.nextLine().trim();
+            if (id.equals("0"))
+                return null;
+            if (id.isEmpty()) {
+                System.out.println("Error: ID cannot be empty.");
+                continue;
+            }
+            if (orderManager.findOrderById(id) != null) {
+                System.out.println("Error: Order ID already exists.");
+                continue;
+            }
+            break;
+        }
 
-        System.out.print("Student Name (0 to go back): ");
-        String name = scanner.nextLine();
-        if (name.equals("0"))
-            return null;
+        String name;
+        while (true) {
+            System.out.print("Student Name (0 to go back): ");
+            name = scanner.nextLine().trim();
+            if (name.equals("0"))
+                return null;
+            if (name.isEmpty()) {
+                System.out.println("Error: Name cannot be empty.");
+                continue;
+            }
+            break;
+        }
 
-        System.out.print("Pickup (0 to go back): ");
-        String pickupRaw = scanner.nextLine();
-        if (pickupRaw.equals("0"))
-            return null;
-        String pickup = normalize(pickupRaw);
+        String pickup;
+        while (true) {
+            System.out.print("Pickup Location (0 to go back): ");
+            String raw = scanner.nextLine().trim();
+            if (raw.equals("0"))
+                return null;
+            if (raw.isEmpty()) {
+                System.out.println("Error: Location cannot be empty.");
+                continue;
+            }
+            pickup = normalize(raw);
+            break;
+        }
 
-        System.out.print("Delivery (0 to go back): ");
-        String deliveryRaw = scanner.nextLine();
-        if (deliveryRaw.equals("0"))
-            return null;
-        String delivery = normalize(deliveryRaw);
+        String delivery;
+        while (true) {
+            System.out.print("Delivery Location (0 to go back): ");
+            String raw = scanner.nextLine().trim();
+            if (raw.equals("0"))
+                return null;
+            if (raw.isEmpty()) {
+                System.out.println("Error: Location cannot be empty.");
+                continue;
+            }
+            delivery = normalize(raw);
+            break;
+        }
 
-        System.out.print("Priority (1-Normal, 2-Urgent, 0-Go back): ");
-        if (!scanner.hasNextInt()) {
-            scanner.next();
+        int priority = 0;
+        while (true) {
+            System.out.print("Priority (1-Normal, 2-Urgent, 0-Go back): ");
+            if (!scanner.hasNextInt()) {
+                System.out.println("Error: Please enter 1 or 2.");
+                scanner.next();
+                continue;
+            }
+            priority = scanner.nextInt();
+            scanner.nextLine();
+            if (priority == 0)
+                return null;
+            if (priority != 1 && priority != 2) {
+                System.out.println("Error: Invalid priority. Enter 1 or 2.");
+                continue;
+            }
+            break;
+        }
+
+        boolean success = orderManager.createOrder(id, name, pickup, delivery, priority);
+        if (success) {
+            return orderManager.findOrderById(id);
+        } else {
+            System.out.println("Error: Failed to create order (possibly duplicate ID discovered late).");
             return null;
         }
-        int priority = scanner.nextInt();
-        scanner.nextLine();
-        if (priority == 0)
-            return null;
-
-        return new Order(id, name, pickup, delivery, priority, 0);
     }
 
     private static String normalize(String s) {
